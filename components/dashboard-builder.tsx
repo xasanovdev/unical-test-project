@@ -50,6 +50,7 @@ export default function DashboardBuilder() {
   const [imageUrl, setImageUrl] = useState("")
   const containerRef = useRef<HTMLDivElement>(null)
   const [selectedBlock, setSelectedBlock] = useState<Block | null>(null)
+  const [movingBlockId, setMovingBlockId] = useState<string | null>(null)
 
   const findFreePositionForNewBlock = (block: Block) => {
   }
@@ -82,11 +83,14 @@ export default function DashboardBuilder() {
   }
 
   const updateBlockPosition = (id: string, position: { x: number; y: number }) => {
-    console.log(position)
+    setMovingBlockId(id)
+    console.log(position) 
     
     const updatedBlocks = blocks.map((block) => (block.id === id ? { ...block, position } : block))
 
     setBlocks(updatedBlocks)
+
+    setMovingBlockId(null)
   }
 
   return (
@@ -100,7 +104,14 @@ export default function DashboardBuilder() {
           <Button onClick={() => setShowAddDialog(true)}>Add Block</Button>
         </div>
 
-        <div className="flex" ref={containerRef}>
+        <div className="flex-1 bg-gray-50 border border-dashed border-gray-300 rounded-lg min-h-[600px] relative" ref={containerRef}>
+            {blocks.length === 0 && (
+              <div className="absolute inset-0 flex items-center justify-center text-gray-400">
+                No blocks in dashboard
+              </div>
+            )}
+
+
           {
             blocks.map((block) => (
               <BlockComponent
@@ -108,12 +119,13 @@ export default function DashboardBuilder() {
                 block={block}
                 editMode={true}
                 containerRef={containerRef}
+                isMoving={block.id === movingBlockId}
                 isSelected={block.id === selectedBlock?.id}
                 onPositionChange={(position) => updateBlockPosition(block.id, position)}
                 onSelect={() => setSelectedBlock(block)}
                 onRemove={() => removeBlock(block.id)}
                 onSizeChange={(size) => updateBlockSize(block.id, size)}
-                blockGap={DEFAULT_BLOCK_WIDTH}
+                blockGap={BLOCK_GAP}
               />
             ))
           }
