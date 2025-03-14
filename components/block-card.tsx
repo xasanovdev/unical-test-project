@@ -241,7 +241,7 @@ export default function BlockComponent({
   return (
     <div
       ref={blockRef}
-      className={`absolute ${isSelected && editMode ? "ring-2 ring-primary" : ""} ${isResizing || isMoving || isDragging ? "z-20" : "z-10"}`}
+      className={`absolute ${isSelected && editMode ? "ring-2 ring-offset-2 rounded-lg ring-primary" : ""} ${isResizing || isMoving || isDragging ? "z-20" : "z-10"}`}
       style={{
         width: `${size.width}px`,
         height: `${size.height}px`,
