@@ -66,11 +66,11 @@ export default function DashboardBuilder() {
   };
 
   const findFreePositionForNewBlock = (newBlock: Block): { x: number; y: number } => {
-    let containerWidth = containerRef.current?.clientWidth || 800;
-    let containerHeight = containerRef.current?.clientHeight || 600;
+    const containerWidth = containerRef.current?.clientWidth || 800;
+    const containerHeight = containerRef.current?.clientHeight || 600;
     
     // Start at top left with a margin
-    let bestPosition = { x: BLOCK_GAP, y: BLOCK_GAP };
+    const bestPosition = { x: BLOCK_GAP, y: BLOCK_GAP };
     
     // If no blocks, return the initial position
     if (blocks.length === 0) return bestPosition;
@@ -97,7 +97,6 @@ export default function DashboardBuilder() {
           // Initial position to test
           let posX = x;
           let posY = y;
-          let adjustedPosition = false;
           
           // Check for blocks above and to the left and adjust position if needed
           blocks.forEach(block => {

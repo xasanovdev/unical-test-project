@@ -62,7 +62,6 @@ export default function BlockComponent({
   });
   const [resizing, setResizing] = useState(false);
   const resizeStartRef = useRef({ x: 0, y: 0, width: 0, height: 0 });
-  const [resizeType, setResizeType] = useState<string | null>(null);
 
   // Update position and size when block props change
   useEffect(() => {
@@ -152,7 +151,7 @@ export default function BlockComponent({
   );
 
   const handleMouseUp = useCallback(
-    (e: MouseEvent) => {
+    () => {
       // Reset the mouse down ref
       isMouseDownRef.current = false;
 
