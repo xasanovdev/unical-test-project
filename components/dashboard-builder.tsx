@@ -52,65 +52,142 @@ export default function DashboardBuilder() {
   const [selectedBlock, setSelectedBlock] = useState<Block | null>(null)
   const [movingBlockId, setMovingBlockId] = useState<string | null>(null)
 
-  const findFreePositionForNewBlock = (): { x: number; y: number } => {
-    if (!containerRef.current) return { x: 20, y: 20 }
-
-    const containerWidth = containerRef.current.clientWidth
-    const containerHeight = containerRef.current.clientHeight
-    const occupiedPositions = blocks.map(block => ({
-      x: block.position.x,
-      y: block.position.y,
-      width: block.size.width,
-      height: block.size.height
-    }))
-
-    let x = 20
-    let y = 20
-
-    while (true) {
-      // Check if this position is occupied
-      const isOccupied = occupiedPositions.some(pos =>
-        x < pos.x + pos.width + BLOCK_GAP &&
-        x + pos.width + BLOCK_GAP > pos.x &&
-        y < pos.y + pos.height + BLOCK_GAP &&
-        y + pos.height + BLOCK_GAP > pos.y
-      )
-
-      if (!isOccupied) {
-        // If space is found, return the position
-        return { x, y }
-      }
-
-      // Move to the next position
-      x += DEFAULT_BLOCK_WIDTH + BLOCK_GAP
-
-      // If reached the container width, go to the next row
-      if (x + DEFAULT_BLOCK_WIDTH > containerWidth) {
-        x = 20
-        y += DEFAULT_BLOCK_HEIGHT + BLOCK_GAP
-      }
-
-      // If the height exceeds the container, update it
-      if (y + DEFAULT_BLOCK_HEIGHT > containerHeight) {
-        containerRef.current.style.height = `${y + DEFAULT_BLOCK_HEIGHT + BLOCK_GAP}px`
-      }
-    }
+  // Helper function to check if two blocks overlap
+  const blocksOverlap = (block1: Block, block2: Block) => {
+    return (
+      block1.position.x < block2.position.x + block2.size.width &&
+      block1.position.x + block1.size.width > block2.position.x &&
+      block1.position.y < block2.position.y + block2.size.height &&
+      block1.position.y + block1.size.height > block2.position.y
+    )
   }
+
+  const findFreePositionForNewBlock = (newBlock: Block): { x: number; y: number } => {
+    let containerWidth = containerRef.current?.clientWidth || 800;
+    let containerHeight = containerRef.current?.clientHeight || 600;
+    
+    // Start at top left with a margin
+    let bestPosition = { x: BLOCK_GAP, y: BLOCK_GAP };
+    
+    // If no blocks, return the initial position
+    if (blocks.length === 0) return bestPosition;
+    
+    // Find the currently occupied vertical space first
+    let highestOccupiedY = 0;
+    blocks.forEach(block => {
+      const blockBottom = block.position.y + block.size.height;
+      if (blockBottom > highestOccupiedY) {
+        highestOccupiedY = blockBottom;
+      }
+    });
+    
+    // Try grid positions until finding a free spot
+    const gridSize = BLOCK_GAP;
+    
+    // Enhanced attempt search with gap calculations
+    const attemptSearch = () => {
+      const maxX = containerWidth - newBlock.size.width - BLOCK_GAP;
+      const maxY = containerHeight - newBlock.size.height - BLOCK_GAP;
+      
+      for (let y = BLOCK_GAP; y <= maxY; y += gridSize) {
+        for (let x = BLOCK_GAP; x <= maxX; x += gridSize) {
+          // Initial position to test
+          let posX = x;
+          let posY = y;
+          let adjustedPosition = false;
+          
+          // Check for blocks above and to the left and adjust position if needed
+          blocks.forEach(block => {
+            const blockRight = block.position.x + block.size.width;
+            const blockBottom = block.position.y + block.size.height;
+            
+            // If there's a block directly above
+            if (blockBottom <= posY && 
+                blockBottom + BLOCK_GAP > posY && 
+                block.position.x < posX + newBlock.size.width && 
+                blockRight > posX) {
+              posY = blockBottom + BLOCK_GAP;
+              adjustedPosition = true;
+            }
+            
+            // If there's a block directly to the left
+            if (blockRight <= posX && 
+                blockRight + BLOCK_GAP > posX && 
+                block.position.y < posY + newBlock.size.height && 
+                blockBottom > posY) {
+              posX = blockRight + BLOCK_GAP;
+              adjustedPosition = true;
+            }
+          });
+          
+          // Skip if adjusted position is out of bounds
+          if (posX > maxX || posY > maxY) continue;
+          
+          // Test the position (original or adjusted)
+          const testBlock = {
+            ...newBlock,
+            position: { x: posX, y: posY }
+          };
+          
+          // Check if this position overlaps with any existing block
+          let overlaps = false;
+          for (const block of blocks) {
+            if (blocksOverlap(testBlock, block)) {
+              overlaps = true;
+              break;
+            }
+          }
+          
+          if (!overlaps) {
+            return { x: posX, y: posY };
+          }
+        }
+      }
+      return null;
+    };
+    
+    // First attempt
+    let position = attemptSearch();
+    if (position) return position;
+    
+    // If no position found, expand container and try again
+    const neededExtraHeight = newBlock.size.height + BLOCK_GAP * 2;
+    const newContainerHeight = highestOccupiedY + neededExtraHeight;
+    
+    // Only expand if needed
+    if (newContainerHeight > containerHeight) {
+      containerRef.current!.style.height = newContainerHeight + 'px';
+      containerHeight = newContainerHeight;
+      
+      // Try search again with new height
+      position = attemptSearch();
+      if (position) return position;
+    }
+    
+    // Last resort - place below all existing blocks
+    return {
+      x: BLOCK_GAP,
+      y: highestOccupiedY + BLOCK_GAP
+    };
+  };
 
   // add block
   const addBlock = () => {
-    const newPosition = findFreePositionForNewBlock()
-
     const newBlock: Block = {
       id: Date.now().toString(),
       type: newBlockType,
       content: imageUrl,
-      position: newPosition,
+      position: { x: BLOCK_GAP, y: BLOCK_GAP }, // Temporary position
       size: { width: DEFAULT_BLOCK_WIDTH, height: DEFAULT_BLOCK_HEIGHT },
     }
-
+    
+    // Find a free position for the new block
+    newBlock.position = findFreePositionForNewBlock(newBlock)
+    
     setBlocks([...blocks, newBlock])
+    setSelectedBlock(newBlock)
     setShowAddDialog(false)
+    setImageUrl("")
   }
 
   // remove block
