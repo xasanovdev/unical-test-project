@@ -52,17 +52,60 @@ export default function DashboardBuilder() {
   const [selectedBlock, setSelectedBlock] = useState<Block | null>(null)
   const [movingBlockId, setMovingBlockId] = useState<string | null>(null)
 
-  const findFreePositionForNewBlock = (block: Block) => {
-  }
+  const findFreePositionForNewBlock = (): { x: number; y: number } => {
+    if (!containerRef.current) return { x: 20, y: 20 }
 
+    const containerWidth = containerRef.current.clientWidth
+    const containerHeight = containerRef.current.clientHeight
+    const occupiedPositions = blocks.map(block => ({
+      x: block.position.x,
+      y: block.position.y,
+      width: block.size.width,
+      height: block.size.height
+    }))
+
+    let x = 20
+    let y = 20
+
+    while (true) {
+      // Check if this position is occupied
+      const isOccupied = occupiedPositions.some(pos =>
+        x < pos.x + pos.width + BLOCK_GAP &&
+        x + pos.width + BLOCK_GAP > pos.x &&
+        y < pos.y + pos.height + BLOCK_GAP &&
+        y + pos.height + BLOCK_GAP > pos.y
+      )
+
+      if (!isOccupied) {
+        // If space is found, return the position
+        return { x, y }
+      }
+
+      // Move to the next position
+      x += DEFAULT_BLOCK_WIDTH + BLOCK_GAP
+
+      // If reached the container width, go to the next row
+      if (x + DEFAULT_BLOCK_WIDTH > containerWidth) {
+        x = 20
+        y += DEFAULT_BLOCK_HEIGHT + BLOCK_GAP
+      }
+
+      // If the height exceeds the container, update it
+      if (y + DEFAULT_BLOCK_HEIGHT > containerHeight) {
+        containerRef.current.style.height = `${y + DEFAULT_BLOCK_HEIGHT + BLOCK_GAP}px`
+      }
+    }
+  }
 
   // add block
   const addBlock = () => {
+    const newPosition = findFreePositionForNewBlock()
+
     const newBlock: Block = {
       id: Date.now().toString(),
       type: newBlockType,
       content: imageUrl,
-      position: { x: 0, y: 0 },
+      position: newPosition,
       size: { width: DEFAULT_BLOCK_WIDTH, height: DEFAULT_BLOCK_HEIGHT },
     }
 
@@ -94,23 +137,22 @@ export default function DashboardBuilder() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen h-full">
       <Header username="John Doe" />
 
-      <main className="flex-1 container mx-auto p-4">
+      <main className="flex-1 h-full container mx-auto p-4">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Dashboard Builder</h1>
           
           <Button onClick={() => setShowAddDialog(true)}>Add Block</Button>
         </div>
 
-        <div className="flex-1 bg-gray-50 border border-dashed border-gray-300 rounded-lg min-h-[600px] relative" ref={containerRef}>
+        <div className="flex-1 bg-gray-50 border shrink-0 grow border-dashed border-gray-300 rounded-lg h-full min-h-[600px] relative" ref={containerRef}>
             {blocks.length === 0 && (
               <div className="absolute inset-0 flex items-center justify-center text-gray-400">
                 No blocks in dashboard
               </div>
             )}
-
 
           {
             blocks.map((block) => (
