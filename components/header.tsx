@@ -1,5 +1,5 @@
 interface HeaderProps {
-  username: string
+  username: string;
 }
 
 export default function Header({ username }: HeaderProps) {
@@ -7,7 +7,7 @@ export default function Header({ username }: HeaderProps) {
     .split(" ")
     .map((name) => name[0])
     .join("")
-    .toUpperCase()
+    .toUpperCase();
 
   return (
     <header className="border-b bg-background">
@@ -17,10 +17,11 @@ export default function Header({ username }: HeaderProps) {
         </div>
 
         <div className="flex items-center gap-4">
-          <span className="text-sm font-medium hidden md:inline-block">Welcome, {username}</span>
+          <span className="text-sm font-medium hidden md:inline-block">
+            Welcome, {username}
+          </span>
         </div>
       </div>
     </header>
-  )
+  );
 }
-

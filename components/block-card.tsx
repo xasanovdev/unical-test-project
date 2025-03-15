@@ -1,26 +1,32 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState, useRef, useEffect, type RefObject, useCallback } from "react"
-import { X, Move } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import type { Block } from "./dashboard-builder"
-import DiagramComponent from "./diagram"
+import {
+  useState,
+  useRef,
+  useEffect,
+  type RefObject,
+  useCallback,
+} from "react";
+import { X, Move } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import type { Block } from "./dashboard-builder";
+import DiagramComponent from "./diagram";
 
 interface BlockComponentProps {
-  block: Block
-  isSelected: boolean
-  isResizing?: boolean
-  isMoving?: boolean
-  onSelect: () => void
-  onRemove: () => void
-  onPositionChange: (position: { x: number; y: number }) => void
-  onSizeChange: (size: { width: number; height: number }) => void
-  editMode: boolean
-  containerRef: RefObject<HTMLDivElement | null>
-  blockGap: number
+  block: Block;
+  isSelected: boolean;
+  isResizing?: boolean;
+  isMoving?: boolean;
+  onSelect: () => void;
+  onRemove: () => void;
+  onPositionChange: (position: { x: number; y: number }) => void;
+  onSizeChange: (size: { width: number; height: number }) => void;
+  editMode: boolean;
+  containerRef: RefObject<HTMLDivElement | null>;
+  blockGap: number;
 }
 
 export default function BlockComponent({
@@ -36,182 +42,229 @@ export default function BlockComponent({
   containerRef,
   blockGap,
 }: BlockComponentProps) {
-  const blockRef = useRef<HTMLDivElement>(null)
+  const blockRef = useRef<HTMLDivElement>(null);
   // Track if mouse is down independently from dragging state
-  const isMouseDownRef = useRef(false)
-  const [isDragging, setIsDragging] = useState(false)
-  const [position, setPosition] = useState({ x: block.position.x, y: block.position.y })
-  const [size, setSize] = useState({ width: block.size.width, height: block.size.height })
-  const dragStartRef = useRef({ x: 0, y: 0 })
-  const positionRef = useRef({ x: block.position.x, y: block.position.y })
-  const sizeRef = useRef({ width: block.size.width, height: block.size.height })
-  const [resizing, setResizing] = useState(false)
-  const resizeStartRef = useRef({ x: 0, y: 0, width: 0, height: 0 })
-  const [resizeType, setResizeType] = useState<string | null>(null)
+  const isMouseDownRef = useRef(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [position, setPosition] = useState({
+    x: block.position.x,
+    y: block.position.y,
+  });
+  const [size, setSize] = useState({
+    width: block.size.width,
+    height: block.size.height,
+  });
+  const dragStartRef = useRef({ x: 0, y: 0 });
+  const positionRef = useRef({ x: block.position.x, y: block.position.y });
+  const sizeRef = useRef({
+    width: block.size.width,
+    height: block.size.height,
+  });
+  const [resizing, setResizing] = useState(false);
+  const resizeStartRef = useRef({ x: 0, y: 0, width: 0, height: 0 });
+  const [resizeType, setResizeType] = useState<string | null>(null);
 
   // Update position and size when block props change
   useEffect(() => {
-    setPosition({ x: block.position.x, y: block.position.y })
-    positionRef.current = { x: block.position.x, y: block.position.y }
-    setSize({ width: block.size.width, height: block.size.height })
-    sizeRef.current = { width: block.size.width, height: block.size.height }
-  }, [block.position.x, block.position.y, block.size.width, block.size.height])
+    setPosition({ x: block.position.x, y: block.position.y });
+    positionRef.current = { x: block.position.x, y: block.position.y };
+    setSize({ width: block.size.width, height: block.size.height });
+    sizeRef.current = { width: block.size.width, height: block.size.height };
+  }, [block.position.x, block.position.y, block.size.width, block.size.height]);
 
   // Update refs when state changes
   useEffect(() => {
-    positionRef.current = position
-  }, [position])
+    positionRef.current = position;
+  }, [position]);
 
   useEffect(() => {
-    sizeRef.current = size
-  }, [size])
+    sizeRef.current = size;
+  }, [size]);
 
   // Define handler functions outside of event callbacks
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    // First check the ref to see if mouse is down
-    if (!isMouseDownRef.current || !isDragging) return
+  const handleMouseMove = useCallback(
+    (e: MouseEvent) => {
+      // First check the ref to see if mouse is down
+      if (!isMouseDownRef.current || !isDragging) return;
 
-    const dragStart = dragStartRef.current
-    
-    const newX = Math.round((e.clientX - dragStart.x) / blockGap) * blockGap
-    const newY = Math.round((e.clientY - dragStart.y) / blockGap) * blockGap
+      const dragStart = dragStartRef.current;
 
-    // Validate position
-    const containerWidth = containerRef.current?.clientWidth || 0
-    const containerHeight = containerRef.current?.clientHeight || 0
-    const currentSize = sizeRef.current
+      const newX = Math.round((e.clientX - dragStart.x) / blockGap) * blockGap;
+      const newY = Math.round((e.clientY - dragStart.y) / blockGap) * blockGap;
 
-    const validX = Math.max(blockGap, Math.min(newX, containerWidth - currentSize.width - blockGap))
-    const validY = Math.max(blockGap, Math.min(newY, containerHeight - currentSize.height - blockGap))
+      // Validate position
+      const containerWidth = containerRef.current?.clientWidth || 0;
+      const containerHeight = containerRef.current?.clientHeight || 0;
+      const currentSize = sizeRef.current;
 
-    const newPosition = { x: validX, y: validY }
-    setPosition(newPosition)
-    positionRef.current = newPosition
-  }, [blockGap, containerRef, isDragging])
+      const validX = Math.max(
+        blockGap,
+        Math.min(newX, containerWidth - currentSize.width - blockGap),
+      );
+      const validY = Math.max(
+        blockGap,
+        Math.min(newY, containerHeight - currentSize.height - blockGap),
+      );
 
-  const handleResizeMove = useCallback((e: MouseEvent) => {
-    if (!isMouseDownRef.current || !resizing) return
+      const newPosition = { x: validX, y: validY };
+      setPosition(newPosition);
+      positionRef.current = newPosition;
+    },
+    [blockGap, containerRef, isDragging],
+  );
 
-    const resizeStart = resizeStartRef.current
-    const currentPosition = positionRef.current
+  const handleResizeMove = useCallback(
+    (e: MouseEvent) => {
+      if (!isMouseDownRef.current || !resizing) return;
 
-    const deltaX = e.clientX - resizeStart.x
-    const deltaY = e.clientY - resizeStart.y
+      const resizeStart = resizeStartRef.current;
+      const currentPosition = positionRef.current;
 
-    // Round sizes to grid
-    const newWidth = Math.round((resizeStart.width + deltaX) / blockGap) * blockGap
-    const newHeight = Math.round((resizeStart.height + deltaY) / blockGap) * blockGap
+      const deltaX = e.clientX - resizeStart.x;
+      const deltaY = e.clientY - resizeStart.y;
 
-    // Enforce minimum and maximum sizes
-    const minSize = blockGap * 5
-    const containerWidth = containerRef.current?.clientWidth || 0
-    const containerHeight = containerRef.current?.clientHeight || 0
+      // Round sizes to grid
+      const newWidth =
+        Math.round((resizeStart.width + deltaX) / blockGap) * blockGap;
+      const newHeight =
+        Math.round((resizeStart.height + deltaY) / blockGap) * blockGap;
 
-    const validWidth = Math.max(minSize, Math.min(newWidth, containerWidth - currentPosition.x - blockGap))
-    const validHeight = Math.max(minSize, Math.min(newHeight, containerHeight - currentPosition.y - blockGap))
+      // Enforce minimum and maximum sizes
+      const minSize = blockGap * 5;
+      const containerWidth = containerRef.current?.clientWidth || 0;
+      const containerHeight = containerRef.current?.clientHeight || 0;
 
-    const newSize = { width: validWidth, height: validHeight }
-    setSize(newSize)
-    sizeRef.current = newSize
-    onSizeChange(newSize)
-  }, [blockGap, containerRef, onSizeChange, resizing])
+      const validWidth = Math.max(
+        minSize,
+        Math.min(newWidth, containerWidth - currentPosition.x - blockGap),
+      );
+      const validHeight = Math.max(
+        minSize,
+        Math.min(newHeight, containerHeight - currentPosition.y - blockGap),
+      );
 
-  const handleMouseUp = useCallback((e: MouseEvent) => {
-    // Reset the mouse down ref
-    isMouseDownRef.current = false
-    
-    if (isDragging) {
-      setIsDragging(false)
-      onPositionChange(positionRef.current)
-    }
+      const newSize = { width: validWidth, height: validHeight };
+      setSize(newSize);
+      sizeRef.current = newSize;
+      onSizeChange(newSize);
+    },
+    [blockGap, containerRef, onSizeChange, resizing],
+  );
 
-    if (resizing) {
-      setResizing(false)
-      onSizeChange(sizeRef.current)
-    }
+  const handleMouseUp = useCallback(
+    (e: MouseEvent) => {
+      // Reset the mouse down ref
+      isMouseDownRef.current = false;
 
-    // Always remove event listeners regardless of state
-    document.removeEventListener("mousemove", handleMouseMove)
-    document.removeEventListener("mousemove", handleResizeMove)
-    document.removeEventListener("mouseup", handleMouseUp)
-  }, [handleMouseMove, handleResizeMove, isDragging, onPositionChange, onSizeChange, positionRef, resizing, sizeRef])
+      if (isDragging) {
+        setIsDragging(false);
+        onPositionChange(positionRef.current);
+      }
+
+      if (resizing) {
+        setResizing(false);
+        onSizeChange(sizeRef.current);
+      }
+
+      // Always remove event listeners regardless of state
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mousemove", handleResizeMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    },
+    [
+      handleMouseMove,
+      handleResizeMove,
+      isDragging,
+      onPositionChange,
+      onSizeChange,
+      positionRef,
+      resizing,
+      sizeRef,
+    ],
+  );
 
   // Register global event handlers once
   useEffect(() => {
     // Global handlers for mouse events - better than adding/removing every time
     const handleGlobalMouseMove = (e: MouseEvent) => {
       if (isDragging) {
-        handleMouseMove(e)
+        handleMouseMove(e);
       } else if (resizing) {
-        handleResizeMove(e)
+        handleResizeMove(e);
       }
-    }
+    };
 
     const handleGlobalMouseUp = (e: MouseEvent) => {
-      handleMouseUp(e)
-    }
+      handleMouseUp(e);
+    };
 
     // Add listeners
-    document.addEventListener("mousemove", handleGlobalMouseMove)
-    document.addEventListener("mouseup", handleGlobalMouseUp)
+    document.addEventListener("mousemove", handleGlobalMouseMove);
+    document.addEventListener("mouseup", handleGlobalMouseUp);
 
     // Clean up
     return () => {
-      document.removeEventListener("mousemove", handleGlobalMouseMove)
-      document.removeEventListener("mouseup", handleGlobalMouseUp)
-      document.removeEventListener("mousemove", handleMouseMove)
-      document.removeEventListener("mousemove", handleResizeMove)
-      document.removeEventListener("mouseup", handleMouseUp)
-    }
-  }, [handleMouseMove, handleMouseUp, handleResizeMove, isDragging, resizing])
+      document.removeEventListener("mousemove", handleGlobalMouseMove);
+      document.removeEventListener("mouseup", handleGlobalMouseUp);
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mousemove", handleResizeMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [handleMouseMove, handleMouseUp, handleResizeMove, isDragging, resizing]);
 
   // Handle mouse down for dragging
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (!editMode) return
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if (!editMode) return;
 
-    // Ensure the event is captured
-    e.preventDefault()
-    e.stopPropagation()
-    
-    // Set mouse down ref immediately
-    isMouseDownRef.current = true
-    
-    onSelect()
-    setIsDragging(true)
+      // Ensure the event is captured
+      e.preventDefault();
+      e.stopPropagation();
 
-    const currentPosition = positionRef.current
-    dragStartRef.current = {
-      x: e.clientX - currentPosition.x,
-      y: e.clientY - currentPosition.y,
-    }
-  }, [editMode, onSelect, positionRef])
+      // Set mouse down ref immediately
+      isMouseDownRef.current = true;
+
+      onSelect();
+      setIsDragging(true);
+
+      const currentPosition = positionRef.current;
+      dragStartRef.current = {
+        x: e.clientX - currentPosition.x,
+        y: e.clientY - currentPosition.y,
+      };
+    },
+    [editMode, onSelect, positionRef],
+  );
 
   // Handle resize start
-  const handleResizeStart = useCallback((e: React.MouseEvent, type: string) => {
-    if (!editMode) return
+  const handleResizeStart = useCallback(
+    (e: React.MouseEvent, type: string) => {
+      if (!editMode) return;
 
-    e.preventDefault()
-    e.stopPropagation()
-    
-    // Set mouse down ref immediately
-    isMouseDownRef.current = true
-    
-    onSelect()
-    setResizing(true)
-    setResizeType(type)
+      e.preventDefault();
+      e.stopPropagation();
 
-    const currentSize = sizeRef.current
-    resizeStartRef.current = {
-      x: e.clientX,
-      y: e.clientY,
-      width: currentSize.width,
-      height: currentSize.height,
-    }
-  }, [editMode, onSelect, sizeRef])
+      // Set mouse down ref immediately
+      isMouseDownRef.current = true;
+
+      onSelect();
+      setResizing(true);
+      setResizeType(type);
+
+      const currentSize = sizeRef.current;
+      resizeStartRef.current = {
+        x: e.clientX,
+        y: e.clientY,
+        width: currentSize.width,
+        height: currentSize.height,
+      };
+    },
+    [editMode, onSelect, sizeRef],
+  );
 
   // Render resize handles
   const renderResizeHandles = () => {
-    if (!editMode) return null
+    if (!editMode) return null;
 
     return (
       <>
@@ -235,8 +288,8 @@ export default function BlockComponent({
           onMouseDown={(e) => handleResizeStart(e, "right")}
         />
       </>
-    )
-  }
+    );
+  };
 
   return (
     <div
@@ -252,15 +305,15 @@ export default function BlockComponent({
         touchAction: "none", // Prevents default touch actions
       }}
       onClick={(e) => {
-        e.stopPropagation()
-        onSelect()
+        e.stopPropagation();
+        onSelect();
       }}
     >
       <Card className="w-full h-full overflow-hidden">
         {editMode && (
           <>
             {/* Move handle redesigned for better hit target */}
-            <div 
+            <div
               className="absolute top-2 left-2 z-30 h-8 w-8 cursor-move bg-background/80 hover:bg-background rounded-md flex items-center justify-center"
               onMouseDown={handleMouseDown}
               onTouchStart={(e) => {
@@ -271,7 +324,7 @@ export default function BlockComponent({
                   stopPropagation: () => e.stopPropagation(),
                   clientX: touch.clientX,
                   clientY: touch.clientY,
-                } as unknown as React.MouseEvent)
+                } as unknown as React.MouseEvent);
               }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -306,7 +359,7 @@ export default function BlockComponent({
               alt="Block content"
               className="w-full h-full object-cover pointer-events-none"
               onError={(e) => {
-                e.currentTarget.src = "/placeholder.svg?height=300&width=400"
+                e.currentTarget.src = "/placeholder.svg?height=300&width=400";
               }}
             />
           ) : (
@@ -315,5 +368,5 @@ export default function BlockComponent({
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
