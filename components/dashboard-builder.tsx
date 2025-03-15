@@ -25,6 +25,7 @@ export interface Block {
   id: string
   type: BlockType
   content: string
+  title: string
   position: { x: number; y: number }
   size: { width: number; height: number }
 }
@@ -51,6 +52,7 @@ export default function DashboardBuilder() {
   const containerRef = useRef<HTMLDivElement>(null)
   const [selectedBlock, setSelectedBlock] = useState<Block | null>(null)
   const [movingBlockId, setMovingBlockId] = useState<string | null>(null)
+  const [blockTitle, setBlockTitle] = useState("")
 
   const blocksOverlap = (block1: Block, block2: Block) => {
     // Check if the blocks are too close horizontally and vertically
@@ -67,7 +69,7 @@ export default function DashboardBuilder() {
 
   const findFreePositionForNewBlock = (newBlock: Block): { x: number; y: number } => {
     const containerWidth = containerRef.current?.clientWidth || 800;
-    const containerHeight = containerRef.current?.clientHeight || 600;
+    let containerHeight = containerRef.current?.clientHeight || 600;
     
     // Start at top left with a margin
     const bestPosition = { x: BLOCK_GAP, y: BLOCK_GAP };
@@ -109,7 +111,6 @@ export default function DashboardBuilder() {
                 block.position.x < posX + newBlock.size.width && 
                 blockRight > posX) {
               posY = blockBottom + BLOCK_GAP;
-              adjustedPosition = true;
             }
             
             // If there's a block directly to the left
@@ -118,7 +119,6 @@ export default function DashboardBuilder() {
                 block.position.y < posY + newBlock.size.height && 
                 blockBottom > posY) {
               posX = blockRight + BLOCK_GAP;
-              adjustedPosition = true;
             }
           });
           
@@ -179,6 +179,7 @@ export default function DashboardBuilder() {
       id: Date.now().toString(),
       type: newBlockType,
       content: imageUrl,
+      title: blockTitle,
       position: { x: BLOCK_GAP, y: BLOCK_GAP }, // Temporary position
       size: { width: DEFAULT_BLOCK_WIDTH, height: DEFAULT_BLOCK_HEIGHT },
     }
@@ -190,6 +191,7 @@ export default function DashboardBuilder() {
     setSelectedBlock(newBlock)
     setShowAddDialog(false)
     setImageUrl("")
+    setBlockTitle("")
   }
 
   // remove block
@@ -471,6 +473,13 @@ const determineMovementDirection = (
             <DialogTitle>Add New Block</DialogTitle>
             <DialogDescription>Choose the type of block you want to add to your dashboard.</DialogDescription>
           </DialogHeader>
+
+          <Input
+            id="block-title"
+            placeholder="Enter block title"
+            value={blockTitle}
+            onChange={(e) => setBlockTitle(e.target.value)}
+          />
 
           <Tabs defaultValue={newBlockType} onValueChange={(value) => setNewBlockType(value as BlockType)}>
             <TabsList className="grid w-full grid-cols-2">

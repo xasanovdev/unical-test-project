@@ -11,7 +11,7 @@ import {
 } from "react";
 import { X, Move } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import type { Block } from "./dashboard-builder";
 import DiagramComponent from "./diagram";
 
@@ -248,7 +248,6 @@ export default function BlockComponent({
 
       onSelect();
       setResizing(true);
-      setResizeType(type);
 
       const currentSize = sizeRef.current;
       resizeStartRef.current = {
@@ -351,7 +350,8 @@ export default function BlockComponent({
           </>
         )}
 
-        <CardContent className="p-0 h-full flex items-center justify-center">
+        <CardContent className="pt-4 h-full flex flex-col gap-4 items-center justify-center">
+          <CardTitle>{block.title}</CardTitle>
           {block.type === "image" ? (
             <img
               src={block.content || "/placeholder.svg?height=300&width=400"}
