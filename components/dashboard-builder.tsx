@@ -361,7 +361,7 @@ export default function DashboardBuilder() {
   
   return (
     <div className="flex flex-col min-h-screen h-full">
-      <Header username="John Doe" />
+      <Header username="Xasanov Ibrohim" />
 
       <main className="flex-1 h-full container mx-auto p-4">
         <div className="flex justify-between items-center mb-6">
