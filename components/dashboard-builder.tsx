@@ -52,15 +52,18 @@ export default function DashboardBuilder() {
   const [selectedBlock, setSelectedBlock] = useState<Block | null>(null)
   const [movingBlockId, setMovingBlockId] = useState<string | null>(null)
 
-  // Helper function to check if two blocks overlap
   const blocksOverlap = (block1: Block, block2: Block) => {
+    // Check if the blocks are too close horizontally and vertically
     return (
-      block1.position.x < block2.position.x + block2.size.width &&
-      block1.position.x + block1.size.width > block2.position.x &&
-      block1.position.y < block2.position.y + block2.size.height &&
-      block1.position.y + block1.size.height > block2.position.y
-    )
-  }
+      // Check horizontal proximity - adding BLOCK_GAP to create buffer zone
+      block1.position.x < block2.position.x + block2.size.width + BLOCK_GAP &&
+      block1.position.x + block1.size.width + BLOCK_GAP > block2.position.x &&
+      
+      // Check vertical proximity - adding BLOCK_GAP to create buffer zone
+      block1.position.y < block2.position.y + block2.size.height + BLOCK_GAP &&
+      block1.position.y + block1.size.height + BLOCK_GAP > block2.position.y
+    );
+  };
 
   const findFreePositionForNewBlock = (newBlock: Block): { x: number; y: number } => {
     let containerWidth = containerRef.current?.clientWidth || 800;
@@ -196,23 +199,166 @@ export default function DashboardBuilder() {
     setBlocks(updatedBlocks)
   }
 
-  const updateBlockSize = (id: string, size: { width: number; height: number }) => {
-    const updatedBlocks = blocks.map((block) => (block.id === id ? { ...block, size } : block))
-
-    setBlocks(updatedBlocks)
-  }
-
-  const updateBlockPosition = (id: string, position: { x: number; y: number }) => {
-    setMovingBlockId(id)
-    console.log(position) 
+  const updateBlockSize = (id: string, newSize: { width: number; height: number }) => {
+    const blockToResize = blocks.find(block => block.id === id);
+    if (!blockToResize) return;
+  
+    const resizedBlock: Block = { ...blockToResize, size: newSize };
+  
+    let updatedBlocks = blocks.map(block => (block.id === id ? resizedBlock : block));
+  
+    const queue: Block[] = updatedBlocks.filter(block => block.id !== id && blocksOverlap(resizedBlock, block));
+    const processedBlockIds = new Set<string>([id]);
+  
+    while (queue.length > 0) {
+      const affectedBlock = queue.shift()!;
+      if (processedBlockIds.has(affectedBlock.id)) continue;
+      
+      processedBlockIds.add(affectedBlock.id);
+  
+      const direction = determineOverlapDirection(resizedBlock, affectedBlock);
+      const newPosition = calculateNewPosition(resizedBlock, affectedBlock, direction);
+  
+      const updatedBlock = { ...affectedBlock, position: newPosition };
+      updatedBlocks = updatedBlocks.map(block => (block.id === affectedBlock.id ? updatedBlock : block));
+  
+      const newOverlaps = updatedBlocks.filter(block => !processedBlockIds.has(block.id) && blocksOverlap(updatedBlock, block));
+      queue.push(...newOverlaps);
+    }
+  
+    setBlocks(updatedBlocks);
+  };
+  
+  
+  // Helper function to determine the best direction to move an overlapping block
+  const determineOverlapDirection = (resizedBlock: Block, affectedBlock: Block): Direction => {
+    // Calculate overlap amounts in each direction
+    const overlapRight = resizedBlock.position.x + resizedBlock.size.width - affectedBlock.position.x;
+    const overlapBelow = resizedBlock.position.y + resizedBlock.size.height - affectedBlock.position.y;
+    const overlapLeft = affectedBlock.position.x + affectedBlock.size.width - resizedBlock.position.x;
+    const overlapAbove = affectedBlock.position.y + affectedBlock.size.height - resizedBlock.position.y;
     
-    const updatedBlocks = blocks.map((block) => (block.id === id ? { ...block, position } : block))
+    // Find the smallest overlap - that's the direction that requires the least movement
+    const minOverlap = Math.min(overlapRight, overlapBelow, overlapLeft, overlapAbove);
+    
+    // Return the direction with minimum overlap
+    if (minOverlap === overlapRight && overlapRight > 0) return Direction.Right;
+    if (minOverlap === overlapBelow && overlapBelow > 0) return Direction.Below;
+    if (minOverlap === overlapLeft && overlapLeft > 0) return Direction.Left;
+    if (minOverlap === overlapAbove && overlapAbove > 0) return Direction.Above;
+    
+    // Default to Right if something goes wrong
+    return Direction.Right;
+  };
+  
+  // Helper function to calculate new position based on overlap direction
+  const calculateNewPosition = (
+    resizedBlock: Block, 
+    affectedBlock: Block, 
+    direction: Direction
+  ): { x: number; y: number } => {
+    const { x, y } = affectedBlock.position;
+    
+    switch (direction) {
+      case Direction.Right:
+        return { 
+          x: resizedBlock.position.x + resizedBlock.size.width + BLOCK_GAP, 
+          y 
+        };
+      case Direction.Below:
+        return { 
+          x, 
+          y: resizedBlock.position.y + resizedBlock.size.height + BLOCK_GAP 
+        };
+      case Direction.Left:
+        return { 
+          x: resizedBlock.position.x - affectedBlock.size.width - BLOCK_GAP, 
+          y 
+        };
+      case Direction.Above:
+        return { 
+          x, 
+          y: resizedBlock.position.y - affectedBlock.size.height - BLOCK_GAP 
+        };
+      default:
+        // If direction is None or something unexpected, don't move
+        return { x, y };
+    }
+  };
 
-    setBlocks(updatedBlocks)
-
-    setMovingBlockId(null)
-  }
-
+  const updateBlockPosition = (id: string, newPosition: { x: number; y: number }) => {
+    setMovingBlockId(id);
+  
+    const blockToMove = blocks.find(block => block.id === id);
+    if (!blockToMove) {
+      setMovingBlockId(null);
+      return;
+    }
+  
+    const movedBlock: Block = { ...blockToMove, position: newPosition };
+    let updatedBlocks = blocks.map(block => (block.id === id ? movedBlock : block));
+  
+    const queue: Block[] = updatedBlocks.filter(block => block.id !== id && blocksOverlap(movedBlock, block));
+    const processedBlockIds = new Set<string>([id]);
+  
+    while (queue.length > 0) {
+      const affectedBlock = queue.shift()!;
+      if (processedBlockIds.has(affectedBlock.id)) continue;
+  
+      processedBlockIds.add(affectedBlock.id);
+  
+      const direction = determineMovementDirection(blockToMove, movedBlock, affectedBlock);
+      const newPosition = calculateNewPosition(movedBlock, affectedBlock, direction);
+  
+      const updatedBlock = { ...affectedBlock, position: newPosition };
+      updatedBlocks = updatedBlocks.map(block => (block.id === affectedBlock.id ? updatedBlock : block));
+  
+      const newOverlaps = updatedBlocks.filter(block => !processedBlockIds.has(block.id) && blocksOverlap(updatedBlock, block));
+      queue.push(...newOverlaps);
+    }
+  
+    setBlocks(updatedBlocks);
+    setMovingBlockId(null);
+  };
+  
+  
+  // Helper function to determine the direction of movement and best push direction
+  const determineMovementDirection = (
+    originalBlock: Block, 
+    movedBlock: Block, 
+    affectedBlock: Block
+  ): Direction => {
+    // Determine the primary direction of movement
+    const moveRight = movedBlock.position.x > originalBlock.position.x;
+    const moveLeft = movedBlock.position.x < originalBlock.position.x;
+    const moveDown = movedBlock.position.y > originalBlock.position.y;
+    const moveUp = movedBlock.position.y < originalBlock.position.y;
+    
+    // Calculate overlap amounts in each direction
+    const overlapRight = movedBlock.position.x + movedBlock.size.width - affectedBlock.position.x;
+    const overlapBelow = movedBlock.position.y + movedBlock.size.height - affectedBlock.position.y;
+    const overlapLeft = affectedBlock.position.x + affectedBlock.size.width - movedBlock.position.x;
+    const overlapAbove = affectedBlock.position.y + affectedBlock.size.height - movedBlock.position.y;
+    
+    // Find the smallest overlap - that's the direction that requires the least movement
+    const minOverlap = Math.min(overlapRight, overlapBelow, overlapLeft, overlapAbove);
+    
+    // Prioritize pushing in the direction of movement if possible
+    if (moveRight && overlapRight > 0) return Direction.Right;
+    if (moveDown && overlapBelow > 0) return Direction.Below;
+    if (moveLeft && overlapLeft > 0) return Direction.Left;
+    if (moveUp && overlapAbove > 0) return Direction.Above;
+    
+    // Fall back to the direction with minimum overlap
+    if (minOverlap === overlapRight && overlapRight > 0) return Direction.Right;
+    if (minOverlap === overlapBelow && overlapBelow > 0) return Direction.Below;
+    if (minOverlap === overlapLeft && overlapLeft > 0) return Direction.Left;
+    if (minOverlap === overlapAbove && overlapAbove > 0) return Direction.Above;
+    
+    // Default to Right if something goes wrong
+    return Direction.Right;
+  };
+  
   return (
     <div className="flex flex-col min-h-screen h-full">
       <Header username="John Doe" />
