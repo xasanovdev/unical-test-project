@@ -237,7 +237,7 @@ export default function BlockComponent({
 
   // Handle resize start
   const handleResizeStart = useCallback(
-    (e: React.MouseEvent, type: string) => {
+    (e: React.MouseEvent) => {
       if (!editMode) return;
 
       e.preventDefault();
